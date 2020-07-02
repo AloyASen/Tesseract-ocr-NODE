@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const app = express();
 const fs = require('fs');
-var Tesseract = require('tesseract.js');
+const tesseract = require("node-tesseract-ocr")
 
 //middlewares
 app.set('view engine', 'ejs');
@@ -31,29 +31,35 @@ app.get('/', (req, res) => {
 
 app.post('/upload', (req, res) => {
   console.log(req.file);
+  const config = {
+    lang: "eng",
+    oem: 1,
+    psm: 3,
+  } // the tesseract options
   upload(req, res, err => {
     if (err) {
       console.log(err);
       return res.send('Something went wrong');
     }
-
+    var imgPath = __dirname + '/images/' + req.file.originalname;
     var image = fs.readFileSync(
-      __dirname + '/images/' + req.file.originalname,
+      imgPath,
       {
         encoding: null
       }
     );
-    Tesseract.recognize(image)
-      .progress(function(p) {
-        console.log('progress', p);
+    tesseract.recognize(imgPath, config)
+      .then(text => {
+        //console.log("Result:", text)
+        res.send(text);
       })
-      .then(function(result) {
-        res.send(result.html);
-      });
+      .catch(error => {
+        console.log(error.message)
+      })
   });
 });
 
-app.get('/showdata', (req, res) => {});
+app.get('/showdata', (req, res) => { });
 
 app.listen(PORT, () => {
   console.log(`Server running on Port ${PORT}`);
